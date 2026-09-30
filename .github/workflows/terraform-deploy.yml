@@ -1,0 +1,55 @@
+name: Terraform deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket_prefix:
+        description: Prefix for the S3 bucket name
+        required: true
+        type: string
+      environment:
+        description: Environment tag value
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Plan and apply Terraform
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_bucket_prefix: ${{ inputs.bucket_prefix }}
+      TF_VAR_tags: ${{ format('{{"Environment":"{0}"}}', inputs.environment) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::720771544603:role/TerraformGitHubActionsRole
+          aws-region: us-east-1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Initialize Terraform
+        working-directory: component
+        run: terraform init -input=false
+
+      - name: Validate Terraform
+        working-directory: component
+        run: terraform validate -no-color
+
+      - name: Plan Terraform changes
+        working-directory: component
+        run: terraform plan -input=false -no-color
+
+      - name: Apply Terraform changes
+        working-directory: component
+        run: terraform apply -auto-approve -input=false -no-color
