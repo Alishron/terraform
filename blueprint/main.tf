@@ -4,7 +4,7 @@ provider "aws" {
 
 module "test_bucket" {
   source        = "../component"
-  bucket_prefix = "terraform-blueprint-test-"
+  bucket_prefix = var.bucket_prefix
 
   tags = {
     ManagedBy = "Terraform"
